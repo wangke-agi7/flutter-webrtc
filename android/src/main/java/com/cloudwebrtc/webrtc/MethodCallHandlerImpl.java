@@ -73,6 +73,7 @@ import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -202,6 +203,8 @@ public class MethodCallHandlerImpl implements MethodCallHandler, StateProvider {
     videoEncoderFactory = new CustomVideoEncoderFactory(eglContext, true, true);
     videoDecoderFactory = new CustomVideoDecoderFactory(eglContext);
 
+    videoEncoderFactory.setFakeCodecs(videoDecoderFactory.getH264AndH265Codecs());
+
     factoryBuilder
             .setVideoEncoderFactory(videoEncoderFactory)
             .setVideoDecoderFactory(videoDecoderFactory);
@@ -210,6 +213,12 @@ public class MethodCallHandlerImpl implements MethodCallHandler, StateProvider {
     videoDecoderFactory.setForceSWCodecList(forceSWCodecList);
     videoEncoderFactory.setForceSWCodec(forceSWCodec);
     videoEncoderFactory.setForceSWCodecList(forceSWCodecList);
+
+    String codecs = Arrays.toString(videoDecoderFactory.getSupportedCodecs());
+    Log.i(TAG, "videoDecoderFactory.getSupportedCodecs=" + codecs);
+
+    codecs = Arrays.toString(videoEncoderFactory.getSupportedCodecs());
+    Log.i(TAG, "videoEncoderFactory.getSupportedCodecs=" + codecs);
 
     mFactory = factoryBuilder
             .setAudioDeviceModule(audioDeviceModule)
