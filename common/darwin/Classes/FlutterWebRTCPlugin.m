@@ -120,6 +120,9 @@ void postEvent(FlutterEventSink _Nonnull sink, id _Nullable event) {
 #endif
                                       withTextures:[registrar textures]];
   [registrar addMethodCallDelegate:instance channel:channel];
+    
+    RTCSetMinDebugLogLevel(RTCLoggingSeverityInfo);
+    
 }
 
 - (instancetype)initWithChannel:(FlutterMethodChannel*)channel
@@ -1081,7 +1084,7 @@ void postEvent(FlutterEventSink _Nonnull sink, id _Nullable event) {
                                  details:nil]);
       return;
     }
-
+        
     result([self transceiverToMap:transceiver]);
   } else if ([@"rtpTransceiverSetDirection" isEqualToString:call.method]) {
     NSDictionary* argsMap = call.arguments;
