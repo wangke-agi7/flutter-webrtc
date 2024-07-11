@@ -1,12 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter/services.dart';
+import 'event_channel.dart';
 
 class WebRTC {
   static const MethodChannel _channel = MethodChannel('FlutterWebRTC.Method');
 
-  static bool get platformIsDesktop =>
-      Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+  static bool get platformIsDesktop => Platform.isWindows || Platform.isMacOS || Platform.isLinux;
 
   static bool get platformIsWindows => Platform.isWindows;
 
@@ -22,8 +22,7 @@ class WebRTC {
 
   static bool get platformIsWeb => false;
 
-  static Future<T?> invokeMethod<T, P>(String methodName,
-      [dynamic param]) async {
+  static Future<T?> invokeMethod<T, P>(String methodName, [dynamic param]) async {
     await initialize();
 
     return _channel.invokeMethod<T>(
@@ -55,5 +54,13 @@ class WebRTC {
       });
       initialized = true;
     }
+  }
+
+  static Future<void> decodeFrame(Map<String, dynamic> params) async {
+    await _channel.invokeMethod<void>("decodeFrame", params);
+  }
+
+  static void registFrameDecoderEvent(Function(dynamic) handler) {
+    FlutterWebRTCEventChannel.instance.frameDecoderHandleEvents.stream.listen(handler);
   }
 }

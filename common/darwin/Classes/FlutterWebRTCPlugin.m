@@ -6,6 +6,7 @@
 #import "FlutterRTCPeerConnection.h"
 #import "FlutterRTCVideoRenderer.h"
 #import "FlutterRTCFrameCryptor.h"
+#import "FlutterRTCFrameDecoder.h"
 #if TARGET_OS_IPHONE
 #import "FlutterRTCVideoPlatformViewFactory.h"
 #import "FlutterRTCVideoPlatformViewController.h"
@@ -165,6 +166,14 @@ void postEvent(FlutterEventSink _Nonnull sink, id _Nullable event) {
   self.frameCryptors = [NSMutableDictionary new];
   self.keyProviders = [NSMutableDictionary new];
   self.videoCapturerStopHandlers = [NSMutableDictionary new];
+  
+  FlutterEventChannel* decoderEventChannel = [FlutterEventChannel
+          eventChannelWithName:@"FlutterWebRTC.frameDecoderEvent"
+               binaryMessenger:self.messenger];
+  self.frameDecoder = [[FlutterRTCFrameDecoder alloc] init];
+  [decoderEventChannel setStreamHandler:self.frameDecoder];
+  
+    
 #if TARGET_OS_IPHONE
   AVAudioSession* session = [AVAudioSession sharedInstance];
   [[NSNotificationCenter defaultCenter] addObserver:self
@@ -756,6 +765,9 @@ void postEvent(FlutterEventSink _Nonnull sink, id _Nullable event) {
     }
     [self rendererSetSrcObject:render stream:videoTrack];
     result(nil);
+  } else if ([@"decodeFrame" isEqualToString:call.method]) {
+      [self decodeFrame:call.arguments result:result];
+      result(nil);
   }
 #if TARGET_OS_IPHONE
   else if ([@"videoPlatformViewRendererSetSrcObject" isEqualToString:call.method]) {
