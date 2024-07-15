@@ -63,6 +63,8 @@ import org.webrtc.RtpSender;
 import org.webrtc.SdpObserver;
 import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
+import org.webrtc.VideoCodecInfo;
+import org.webrtc.VideoDecoder;
 import org.webrtc.VideoTrack;
 import org.webrtc.audio.AudioDeviceModule;
 import org.webrtc.audio.JavaAudioDeviceModule;
@@ -70,11 +72,13 @@ import org.webrtc.video.CustomVideoDecoderFactory;
 import org.webrtc.video.CustomVideoEncoderFactory;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -116,10 +120,13 @@ public class MethodCallHandlerImpl implements MethodCallHandler, StateProvider {
 
   private CustomVideoDecoderFactory videoDecoderFactory;
 
+  private FlutterRTCFrameDecoder frameDecoder;
+
   MethodCallHandlerImpl(Context context, BinaryMessenger messenger, TextureRegistry textureRegistry) {
     this.context = context;
     this.textures = textureRegistry;
     this.messenger = messenger;
+    this.frameDecoder = new FlutterRTCFrameDecoder(this.messenger);
   }
 
   static private void resultError(String method, String error, Result result) {
@@ -157,6 +164,7 @@ public class MethodCallHandlerImpl implements MethodCallHandler, StateProvider {
     getUserMediaImpl = new GetUserMediaImpl(this, context);
 
     frameCryptor = new FlutterRTCFrameCryptor(this);
+    frameDecoder.initDecoder();
 
     AudioAttributes audioAttributes = null;
     if (androidAudioConfiguration != null) {
@@ -917,6 +925,11 @@ public class MethodCallHandlerImpl implements MethodCallHandler, StateProvider {
           params.putString("state", Utils.connectionStateString(pc.connectionState()));
           result.success(params.toMap());
         }
+        break;
+      }
+      case "decodeFrame": {
+        frameDecoder.decodeFrame(call);
+        result.success(null);
         break;
       }
       default:
