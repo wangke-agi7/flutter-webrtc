@@ -1,8 +1,9 @@
 package com.cloudwebrtc.webrtc;
 
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.media.MediaCodec;
+import android.media.MediaFormat;
 import android.opengl.GLES20;
 import android.util.Log;
 
@@ -15,6 +16,7 @@ import org.webrtc.GlRectDrawer;
 import org.webrtc.GlTextureFrameBuffer;
 import org.webrtc.GlUtil;
 import org.webrtc.RendererCommon;
+import org.webrtc.SoftwareVideoDecoderFactory;
 import org.webrtc.VideoCodecInfo;
 import org.webrtc.VideoDecoder;
 import org.webrtc.VideoDecoderFallback;
@@ -28,7 +30,6 @@ import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.Map;
 
 import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.EventChannel;
@@ -47,6 +48,12 @@ public class FlutterRTCFrameDecoder implements  EventChannel.StreamHandler {
     private VideoDecoder h264Decoder;
     private VideoDecoder h265Decoder;
 
+    private int lastH264Width = 1280;
+    private int lastH264Height = 720;
+
+    private int lastH265Width = 1280;
+    private int lastH265Height = 720;
+
     HashMap<Integer, String> seqTargets = new HashMap<Integer, String>();
 
     public void onListen(Object o, EventChannel.EventSink sink) {
@@ -59,35 +66,8 @@ public class FlutterRTCFrameDecoder implements  EventChannel.StreamHandler {
     }
 
     public void initDecoder() {
-        EglBase.Context eglContext = EglUtils.getRootEglBaseContext();
-        CustomVideoDecoderFactory videoDecoderFactory = new CustomVideoDecoderFactory(eglContext);
-        {
-            Log.i(TAG, "create h264Decoder");
-            VideoDecoder decoder = videoDecoderFactory.createDecoder(
-                    new VideoCodecInfo("H264", new HashMap<>(), new LinkedList<>()));
-
-            if (decoder.getClass().equals(VideoDecoderFallback.class)) {
-                VideoDecoderFallback fallback = (VideoDecoderFallback) decoder;
-                h264Decoder = fallback.fallback;
-                h264Decoder.initDecode(new VideoDecoder.Settings(0, 1280, 720),
-                        (videoFrame, integer, integer1) -> {
-                    onDecodeFrame(videoFrame, "h264");
-                });
-            }
-        }
-        {
-            Log.i(TAG, "create h265Decoder");
-            VideoDecoder decoder = videoDecoderFactory.createDecoder(
-                    new VideoCodecInfo("H265", new HashMap<>(), new LinkedList<>()));
-            if (decoder.getClass().equals(VideoDecoderFallback.class)) {
-                VideoDecoderFallback fallback = (VideoDecoderFallback) decoder;
-                h265Decoder = fallback.fallback;
-                h265Decoder.initDecode(new VideoDecoder.Settings(0, 1280, 720),
-                        (videoFrame, integer, integer1) -> {
-                    onDecodeFrame(videoFrame, "h265");
-                });
-            }
-        }
+        createDecoder("H264");
+        createDecoder("H265");
     }
 
     public void decodeFrame(MethodCall call) {
@@ -120,8 +100,18 @@ public class FlutterRTCFrameDecoder implements  EventChannel.StreamHandler {
             seqTargets.put(seq, targetFile);
 
             if (codec.equals("h264")) {
+                if (width != lastH264Width || height != lastH264Height || h264Decoder == null) {
+                    lastH264Width = width;
+                    lastH264Height = height;
+                    createDecoder("H264");
+                }
                 h264Decoder.decode(encodedImage, new VideoDecoder.DecodeInfo(false, seq));
             } else if (codec.equals("h265")) {
+                if (width != lastH265Width || height != lastH265Height || h265Decoder == null) {
+                    lastH265Width = width;
+                    lastH265Height = height;
+                    createDecoder("H265");
+                }
                 h265Decoder.decode(encodedImage, new VideoDecoder.DecodeInfo(false, seq));
             } else {
                 Log.e(TAG, "Unsupported Codec: " + codec);
@@ -203,4 +193,45 @@ public class FlutterRTCFrameDecoder implements  EventChannel.StreamHandler {
         }
     }
 
+    private void createDecoder(String codec) {
+        if (codec.equals("H264") && h264Decoder != null) {
+            h264Decoder.release();
+        }
+
+        if (codec.equals("H265") && h265Decoder != null) {
+            h265Decoder.release();
+        }
+
+        EglBase.Context eglContext = EglUtils.getRootEglBaseContext();
+        CustomVideoDecoderFactory videoDecoderFactory = new CustomVideoDecoderFactory(eglContext);
+        Log.i(TAG, "create " + codec + "Decoder");
+        VideoDecoder decoder = videoDecoderFactory.createDecoder(
+                new VideoCodecInfo(codec, new HashMap<>(), new LinkedList<>()));
+        int lastWidth = codec.equals("H264") ? lastH264Width : lastH265Width;
+        int lastHeight = codec.equals("H264") ? lastH264Height : lastH265Height;
+        if (decoder.getClass().equals(VideoDecoderFallback.class)) {
+            VideoDecoderFallback fallback = (VideoDecoderFallback) decoder;
+            if (codec.equals("H264")) {
+//                fallback.primary.release();
+                h264Decoder = fallback.fallback;
+                h264Decoder.initDecode(new VideoDecoder.Settings(0, lastWidth, lastHeight),
+                        (videoFrame, integer, integer1) -> {
+                            onDecodeFrame(videoFrame, codec);
+                        });
+            } else if (codec.equals("H265")) {
+                try {
+                    MediaCodec mediaCodec = MediaCodec.createDecoderByType(MediaFormat.MIMETYPE_VIDEO_HEVC);
+                } catch (Exception e) {
+                    Log.e(TAG, "crate MediaCodec failed: " + e);
+                }
+//                fallback.primary.release();
+                h265Decoder = fallback.fallback;
+                h265Decoder.initDecode(new VideoDecoder.Settings(0, lastWidth, lastHeight),
+                        (videoFrame, integer, integer1) -> {
+                            onDecodeFrame(videoFrame, codec);
+                        });
+            }
+
+        }
+    }
 }
