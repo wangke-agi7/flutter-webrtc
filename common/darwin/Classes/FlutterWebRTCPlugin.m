@@ -122,7 +122,7 @@ void postEvent(FlutterEventSink _Nonnull sink, id _Nullable event) {
                                       withTextures:[registrar textures]];
   [registrar addMethodCallDelegate:instance channel:channel];
     
-    RTCSetMinDebugLogLevel(RTCLoggingSeverityInfo);
+    RTCSetMinDebugLogLevel(RTCLoggingSeverityVerbose);
     
 }
 

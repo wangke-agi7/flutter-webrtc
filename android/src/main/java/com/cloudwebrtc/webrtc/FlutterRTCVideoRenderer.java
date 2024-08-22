@@ -90,6 +90,17 @@ public class FlutterRTCVideoRenderer implements EventChannel.StreamHandler {
         };
     }
 
+    private FlutterRTCFrameEvent frameEvent;
+
+    private void listenFrameEvents() {
+        frameEvent = rtpTimestamp -> {
+            ConstraintsMap params = new ConstraintsMap();
+            params.putString("event", "onFrameRTPTimestamp");
+            params.putLong("rtpTimestamp", rtpTimestamp);
+            eventSink.success(params.toMap());
+        };
+    }
+
     private final SurfaceTextureRenderer surfaceTextureRenderer;
 
     /**
@@ -103,7 +114,8 @@ public class FlutterRTCVideoRenderer implements EventChannel.StreamHandler {
     public FlutterRTCVideoRenderer(SurfaceTexture texture, TextureRegistry.SurfaceTextureEntry entry) {
         this.surfaceTextureRenderer = new SurfaceTextureRenderer("");
         listenRendererEvents();
-        surfaceTextureRenderer.init(EglUtils.getRootEglBaseContext(), rendererEvents);
+        listenFrameEvents();
+        surfaceTextureRenderer.init(EglUtils.getRootEglBaseContext(), rendererEvents, frameEvent);
         surfaceTextureRenderer.surfaceCreated(texture);
 
         this.texture = texture;
@@ -237,7 +249,8 @@ public class FlutterRTCVideoRenderer implements EventChannel.StreamHandler {
 
             surfaceTextureRenderer.release();
             listenRendererEvents();
-            surfaceTextureRenderer.init(sharedContext, rendererEvents);
+            listenFrameEvents();
+            surfaceTextureRenderer.init(sharedContext, rendererEvents, frameEvent);
             surfaceTextureRenderer.surfaceCreated(texture);
 
             videoTrack.addSink(surfaceTextureRenderer);

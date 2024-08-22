@@ -22,7 +22,7 @@ public class CustomVideoDecoderFactory implements VideoDecoderFactory {
     private List<String> forceSWCodecs = new ArrayList<>();
 
     public  CustomVideoDecoderFactory(EglBase.Context sharedContext) {
-        // Logging.enableLogToDebugOutput(Logging.Severity.LS_INFO);
+//        Logging.enableLogToDebugOutput(Logging.Severity.LS_INFO);
         this.wrappedVideoDecoderFactory = new WrappedVideoDecoderFactory(sharedContext);
     }
 

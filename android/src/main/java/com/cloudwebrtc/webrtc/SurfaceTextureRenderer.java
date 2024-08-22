@@ -1,6 +1,7 @@
 package com.cloudwebrtc.webrtc;
 
 import android.graphics.SurfaceTexture;
+import android.os.SystemClock;
 
 import org.webrtc.EglBase;
 import org.webrtc.EglRenderer;
@@ -10,6 +11,8 @@ import org.webrtc.ThreadUtils;
 import org.webrtc.VideoFrame;
 
 import java.util.concurrent.CountDownLatch;
+
+import io.flutter.Log;
 
 /**
  * Display the video stream on a Surface.
@@ -22,6 +25,7 @@ import java.util.concurrent.CountDownLatch;
 public class SurfaceTextureRenderer extends EglRenderer {
   // Callback for reporting renderer events. Read-only after initilization so no lock required.
   private RendererCommon.RendererEvents rendererEvents;
+  private FlutterRTCFrameEvent frameEvent;
   private final Object layoutLock = new Object();
   private boolean isRenderingPaused;
   private boolean isFirstFrameRendered;
@@ -37,8 +41,9 @@ public class SurfaceTextureRenderer extends EglRenderer {
   }
 
   public void init(final EglBase.Context sharedContext,
-                   RendererCommon.RendererEvents rendererEvents) {
+                   RendererCommon.RendererEvents rendererEvents, FlutterRTCFrameEvent frameEvent) {
     init(sharedContext, rendererEvents, EglBase.CONFIG_PLAIN, new GlRectDrawer());
+    this.frameEvent = frameEvent;
   }
 
   /**
@@ -96,6 +101,8 @@ public class SurfaceTextureRenderer extends EglRenderer {
   @Override
   public void onFrame(VideoFrame frame) {
     updateFrameDimensionsAndReportEvents(frame);
+    Log.d("SurfaceTextureRenderer", "frame time: " + frame.getTimestampNs() + ", rtp time: " + frame.getRtpTimestamp());
+    frameEvent.onFrameRTPTimestamp(frame.getRtpTimestamp());
     super.onFrame(frame);
   }
 
