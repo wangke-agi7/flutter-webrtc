@@ -97,7 +97,11 @@ public class FlutterRTCVideoRenderer implements EventChannel.StreamHandler {
             ConstraintsMap params = new ConstraintsMap();
             params.putString("event", "onFrameRTPTimestamp");
             params.putLong("rtpTimestamp", rtpTimestamp);
-            eventSink.success(params.toMap());
+            if (eventSink != null) {
+                eventSink.success(params.toMap());
+            } else {
+                Log.d("FlutterRTCVideoRenderer", "onFrameRTPTimestamp eventSink is null!!!");
+            }
         };
     }
 

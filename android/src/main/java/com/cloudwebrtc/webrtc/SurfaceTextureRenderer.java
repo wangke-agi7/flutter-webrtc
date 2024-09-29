@@ -101,7 +101,7 @@ public class SurfaceTextureRenderer extends EglRenderer {
   @Override
   public void onFrame(VideoFrame frame) {
     updateFrameDimensionsAndReportEvents(frame);
-    Log.d("SurfaceTextureRenderer", "frame time: " + frame.getTimestampNs() + ", rtp time: " + frame.getRtpTimestamp());
+//    Log.d("SurfaceTextureRenderer", "frame time: " + frame.getTimestampNs() + ", rtp time: " + frame.getRtpTimestamp());
     frameEvent.onFrameRTPTimestamp(frame.getRtpTimestamp());
     super.onFrame(frame);
   }
